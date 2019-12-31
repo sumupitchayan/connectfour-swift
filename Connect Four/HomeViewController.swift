@@ -62,7 +62,7 @@ class HomeViewController: UIViewController, UITextFieldDelegate {
         // Creates Players and Game:
         let p1 = Player(color: .red, name: name1)
         p1.emoji = emoji1
-        let p2 = (ai2Switch.isOn) ? AIPlayer(color: .yellow, name: name2, delay: 1) : Player(color: .yellow, name: name2)
+        let p2 = (ai2Switch.isOn) ? MinimaxAI(color: .yellow, name: name2, delay: 1) : Player(color: .yellow, name: name2)
         p2.emoji = emoji2
         game = Game(height: 6, width: 7, connectWin: 4, p1: p1, p2: p2)
         
@@ -109,8 +109,24 @@ class HomeViewController: UIViewController, UITextFieldDelegate {
 }
 
 //MARK: - Extensions for Emoji Reading
-// (https://stackoverflow.com/questions/30757193/find-out-if-character-in-string-is-emoji)
 
+// (https://stackoverflow.com/questions/52007286/show-random-emoji-inside-a-label-in-tableviewcell)
+extension NSObject {
+
+    public var emojiString: String {
+        let pointer = Unmanaged.passUnretained(self).toOpaque()
+        // You can adjust your range
+        //let range = 0x1F600...0x1F64F
+        let range = 0x1F300...0x1F3F0
+        let index = (pointer.hashValue % range.count)
+        let ord = range.lowerBound + index
+        guard let scalar = UnicodeScalar(ord) else { return "❓" }
+        return String(scalar)
+    }
+
+}
+
+// (https://stackoverflow.com/questions/30757193/find-out-if-character-in-string-is-emoji)
 extension Character {
     // A simple emoji is one scalar and presented to the user as an Emoji
     var isSimpleEmoji: Bool {

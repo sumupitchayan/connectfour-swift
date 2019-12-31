@@ -30,10 +30,12 @@ class AIPlayer: Player {
     // Simplest make decision function choses a random column
     func makeDecision(board: Board) -> Int {
         let randCol = Int.random(in: 0..<board.cols)
-        if board.colIsFull(col: randCol) {
-            return makeDecision(board: board)
+        if !board.colIsFull(randCol) {
+            return randCol
+        } else {
+            let randIndex = Int.random(in: 0..<board.getAvailableCols().count)
+            return board.getAvailableCols()[randIndex]
         }
-        return randCol
     }
     
 }

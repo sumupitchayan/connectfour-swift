@@ -17,7 +17,7 @@ class Connect_FourTests: XCTestCase {
     var game: Game!
     
     override func setUp() {
-        board = Board(height: 6, width: 7)
+        board = Board(height: 6, width: 7, connectWin: 4)
         player1 = Player(color: .red, name: "Sumu")
         player2 = Player(color: .yellow, name: "Andy")
         game = Game(height: 6, width: 7, connectWin: 4, p1: player1, p2: player2)
@@ -33,21 +33,18 @@ class Connect_FourTests: XCTestCase {
         
         // Test that player 1 (starting player) can make a move
         game.makeMove(col: 0, player: player1)
-        XCTAssertTrue(game.board.lastFilledRow(inCol: 0) == game.board.rows-1)
         XCTAssertTrue(game.board[game.rows-1, 0] == player1.token)
         
         // Test that player 1 cannot make a move again
         game.makeMove(col: 0, player: player1)
-        XCTAssertTrue(game.board.lastFilledRow(inCol: 0) == game.board.rows-1)
         
         // Test that player 2 can now move
         game.makeMove(col: 0, player: player2)
-        XCTAssertTrue(game.board.lastFilledRow(inCol: 0) == game.board.rows-2)
         XCTAssertTrue(game.board[game.rows-2, 0] == player2.token)
         
     }
     
-    //MARK: - Game Win Logic Tests
+    //MARK: - Board Tests: Win Logic
     
     func testHorizontalWinFromLeft() {
         for i in 0...2 {
@@ -93,7 +90,13 @@ class Connect_FourTests: XCTestCase {
         XCTAssertTrue(game.winners.count == 1)
     }
     
-    //MARK: - Board Tests
+    func testGetLine() {
+        let bottomRow = board.getLine(row: game.rows-1, col: 3, xStep: 1, yStep: 0)
+        XCTAssert(bottomRow.count == 7)
+        print(bottomRow.count)
+    }
+    
+    //MARK: - Board Tests: General
     
     func testSubscript() {
         XCTAssertTrue(board[0, 0] == .none)
@@ -103,6 +106,13 @@ class Connect_FourTests: XCTestCase {
         XCTAssert(board[board.rows-1, 0] == .none)
         XCTAssert(board.dropToken(col: 0, val: .red) == board.rows-1)
         XCTAssert(board[board.rows-1, 0] == .red)
+    }
+    
+    func testIsInRange() {
+        XCTAssertTrue(board.isInRange(row: 0, col: 5))
+        XCTAssertFalse(board.isInRange(row: 7, col: 3))
+        XCTAssertFalse(board.isInRange(row: 0, col: 7))
+        XCTAssertFalse(board.isInRange(row: 7, col: 7))
     }
 
     func testFirstAvailRow() {
@@ -120,20 +130,23 @@ class Connect_FourTests: XCTestCase {
         XCTAssertNil(board.firstAvailRow(inCol: 0))
     }
 
-    func testLastFilledRow() {
-        XCTAssertNil(board.lastFilledRow(inCol: 0))
-        XCTAssertTrue((board.dropToken(col: 0, val: .red) != nil))
-        XCTAssertTrue(board.lastFilledRow(inCol: 0) == board.rows-1)
-    }
-
     func testColIsFull() {
-        XCTAssertFalse(board.colIsFull(col: 0))
+        XCTAssertFalse(board.colIsFull(0))
         for _ in 0...4 {
             XCTAssertTrue((board.dropToken(col: 0, val: .red) != nil))
         }
-        XCTAssertFalse(board.colIsFull(col: 0))
+        XCTAssertFalse(board.colIsFull(0))
         XCTAssertTrue((board.dropToken(col: 0, val: .red) != nil))
-        XCTAssertTrue(board.colIsFull(col: 0))
+        XCTAssertTrue(board.colIsFull(0))
+    }
+    
+    func testGetAvailableCols() {
+        XCTAssertTrue(board.getAvailableCols().count == 7)
+        for i in 0..<6 {
+            board.dropToken(col: 0, val: .red)
+        }
+        XCTAssertTrue(board.getAvailableCols().count == 6)
+        XCTAssertFalse(board.getAvailableCols().contains(0))
     }
 
 }

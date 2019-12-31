@@ -19,7 +19,7 @@ protocol GameViewDelegate {
  for player turn switching, checking for wins/draws, and making
  moves.
  */
-class Game {
+class Game: NSCopying {
     
     // Game has 2 Players and keeps track of the current player
     let player1: Player
@@ -33,7 +33,7 @@ class Game {
     var gameViewDelegate: GameViewDelegate?
     
     // Board size/win count variables:
-    let board: Board
+    var board: Board
     let connect: Int
     let rows: Int
     let cols: Int
@@ -43,10 +43,17 @@ class Game {
         rows = height
         cols = width
         connect = connectWin
-        board = Board(height: height, width: width)
+        board = Board(height: height, width: width, connectWin: connectWin)
         
         player1 = p1
         player2 = p2
+        curPlayer = player1
+    }
+    
+    // Resets the board, winners tracker and turn tracker variables
+    func reset() {
+        board.reset()
+        winners = [Player]()
         curPlayer = player1
     }
     
@@ -99,7 +106,7 @@ class Game {
         if (winners.count == 0) {
             // If the current player is AI, make the AI player move
             if let ai = curPlayer as? AIPlayer {
-                let colMove = ai.makeDecision(board: board)
+                let colMove = ai.makeDecision(board: self.board)
                 // Delays the AI's move according to its .delay property in seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + ai.delay, execute: {
                     self.makeMove(col: colMove, player: self.curPlayer)
@@ -108,123 +115,27 @@ class Game {
         }
     }
     
-    // Resets the board, winners tracker and turn tracker variables
-    func reset() {
-        board.reset()
-        winners = [Player]()
-        curPlayer = player1
-    }
-    
     //MARK: - Game Win/Draw Logic
     
     // Updates the winners array instance variable
     func updateGameStatus(row: Int, col: Int, player: Player) {
-        checkWin(row: row, col: col, player: player)
-        if winners.count == 0 {
-            checkDraw()
-        }
-    }
-    
-    // Draw check: if each column is full
-    func checkDraw() {
-        for col in 0...board.cols-1 {
-            if !board.colIsFull(col: col) { return }
-        }
-        winners = [player1, player2]
-    }
-    
-    // Win check: if there is a connecting line of connect length
-    func checkWin(row: Int, col: Int, player: Player) {
         
-        // The starting token color at [row][col]
-        let initialToken: TokenColor = board[row, col]
-        
-        // Horizonal Win:
-        let horizontalLine = getLine(row: row, col: col, xStep: 1, yStep: 0)
-        if lineIsWin(line: horizontalLine, val: initialToken) {
+        if board.checkWin(row: row, col: col, token: player.token) != nil {
             winners = [player]
-            return
+        } else if board.boardIsFull() {
+            winners = [player1, player2]
         }
         
-        // Vertical Win:
-        let verticalLine = getLine(row: row, col: col, xStep: 0, yStep: 1)
-        if lineIsWin(line: verticalLine, val: initialToken) {
-            winners = [player]
-            return
-        }
-
-        // Positive diagonal win:
-        let posDiagonal = getLine(row: row, col: col, xStep: 1, yStep: 1)
-        if lineIsWin(line: posDiagonal, val: initialToken) {
-            winners = [player]
-            return
-        }
-
-        // Negative diagonal win:
-        let negDiagonal = getLine(row: row, col: col, xStep: 1, yStep: -1)
-        if lineIsWin(line: negDiagonal, val: initialToken) {
-            winners = [player]
-            return
-        }
     }
     
-    // Determines if line is a win
-    func lineIsWin(line: [BoardPosition], val: TokenColor) -> Bool {
-        // Goes through the list of ordered BoardPosition points and finds the longest sublist that have the desired token color.
-        // If the maximum sublist is at least the length of the connect win value, it returns True.
-        var maxLineCount = [BoardPosition]()
-        var tempLineCount = [BoardPosition]()
-        for token in line {
-            if token.val == val {
-                tempLineCount.append(token)
-                // Updates the maxLine count
-                maxLineCount = (tempLineCount.count >= maxLineCount.count) ? tempLineCount : maxLineCount
-            } else {
-                tempLineCount = [BoardPosition]()
-            }
-        }
-        return maxLineCount.count >= connect
+    //MARK: - NSCopying Protocol
+    
+    func copy(with zone: NSZone? = nil) -> Any {
+        let copy = Game(height: rows, width: cols, connectWin: connect, p1: player1, p2: player2)
+        copy.board = self.board
+        copy.winners = self.winners
+        copy.curPlayer = self.curPlayer
+        return copy
     }
     
-    // Gets a line passing through a specified point
-    func getLine(row: Int, col: Int, xStep: Int, yStep: Int) -> [BoardPosition] {
-        /*
-         Gets a list of BorderPositions on a specified line through the input point at [row][col]
-         
-         There are four different lines that intersect any given point:
-         - Horizontal (the row): xStep = 1, yStep = 0
-         - Vertical (the column): xStep = 0, yStep = 0
-         - Positive Diagonal: xStep = 1, yStep = 0
-         - Negative Diagonal: xStep = 1, yStep = -1
-         */
-        var leftSide = [BoardPosition]()
-        var curR = row+yStep
-        var curC = col-xStep
-        while((0..<rows).contains(curR) && (0..<cols).contains(curC)) {
-            leftSide.append(BoardPosition(row: curR, col: curC, val: board[curR, curC]))
-            curR += yStep
-            curC -= xStep
-        }
-        
-        var rightSide = [BoardPosition]()
-        curR = row - yStep
-        curC = col + xStep
-        while((0..<rows).contains(curR) && (0..<cols).contains(curC)) {
-            rightSide.append(BoardPosition(row: curR, col: curC, val: board[curR, curC]))
-            curR -= yStep
-            curC += xStep
-        }
-        
-        let initialPos = BoardPosition(row: row, col: col, val: board[row, col])
-        return leftSide.reversed() + [initialPos] + rightSide
-    }
-    
-}
-
-// BoardPosition object represents point on the board with its TokenColor value
-// Used in determining whether or not the game was been won/drawn
-struct BoardPosition {
-    var row: Int
-    var col: Int
-    var val: TokenColor
 }
