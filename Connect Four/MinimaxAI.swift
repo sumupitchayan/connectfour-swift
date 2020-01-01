@@ -12,8 +12,7 @@ class MinimaxAI: AIPlayer {
         
     override func makeDecision(board: Board) -> Int {
 //        let bestCol = pickBestMove(game: game)
-        return pickBestMove(board: board)
-//        return 0
+        return pickBestMove(board: board, curToken: token)
     }
     
     func isTerminalNode(game: Game) -> Bool {
@@ -51,19 +50,24 @@ class MinimaxAI: AIPlayer {
         return 0
     }
 
-    func pickBestMove(board: Board) -> Int {
-        var bestCol = 0
+    func pickBestMove(board: Board, curToken: TokenColor) -> Int {
+        let randIndex = Int.random(in: 0..<board.getAvailableCols().count)
+        
+        var bestCol = board.getAvailableCols()[randIndex]
         var bestScore = Int.min
         var curScore = Int.min
         
         for col in board.getAvailableCols() {
             var boardTemp = board
-            boardTemp.dropToken(col: col, val: token)
-            curScore = scorePosition(board: boardTemp, curToken: token)
+            _ = boardTemp.dropToken(col: col, val: token)
 
-            print(curScore)
+            curScore = scorePosition(board: boardTemp, curToken: curToken)
+//            print("cur col = \(col)")
+//            print(curScore)
 
-            if curScore > bestScore {
+//            print("Cur score: = \(curScore)")
+            
+            if curScore >= bestScore {
                 bestScore = curScore
                 bestCol = col
             }
@@ -77,10 +81,50 @@ class MinimaxAI: AIPlayer {
         // Score Horizontal
         for r in 0..<board.rows {
             let rowArr = board.getLine(row: r, col: 0, xStep: 1, yStep: 0)
-            for c in 0..<board.rows-board.connect-1 {
+            for c in 0...board.cols-board.connect {
                 let window = Array(rowArr[c..<c+board.connect])
                 score += evaluateWindow(window: window, curToken: curToken)
-                print(window.count)
+            }
+        }
+        
+        // Score Vertical
+        for c in 0..<board.cols {
+            let colArr = board.getLine(row: 0, col: c, xStep: 0, yStep: 1)
+            for r in 0...board.rows-board.connect {
+                let window = Array(colArr[r..<r+board.connect])
+                score += evaluateWindow(window: window, curToken: curToken)
+            }
+        }
+        
+        // Score Positive Diagonal
+        for c in 0..<board.cols {
+            let posDiagArr = board.getLine(row: 2, col: c, xStep: 1, yStep: 1)
+            if posDiagArr.count >= board.connect {
+                var i = 0
+                var j = board.connect - 1
+                
+                while(j < posDiagArr.count) {
+                    let window = Array(posDiagArr[i...j])
+                    score += evaluateWindow(window: window, curToken: curToken)
+                    i += 1
+                    j += 1
+                }
+            }
+        }
+        
+        // Score Negative Diagonal
+        for c in 0..<board.cols {
+            let posDiagArr = board.getLine(row: 2, col: c, xStep: 1, yStep: -1)
+            if posDiagArr.count >= board.connect {
+                var i = 0
+                var j = board.connect - 1
+                
+                while(j < posDiagArr.count) {
+                    let window = Array(posDiagArr[i...j])
+                    score += evaluateWindow(window: window, curToken: curToken)
+                    i += 1
+                    j += 1
+                }
             }
         }
 
@@ -100,10 +144,19 @@ class MinimaxAI: AIPlayer {
             score += 100
         } else if counts[curToken] == 3 && counts[.none] == 1 {
             score += 10
+        } else if counts[curToken] == 2 && counts[.none] == 2 {
+            score += 5
         }
+        
+        if counts[curToken] == 0 && counts[.none] == 1 {
+            score -= 80
+        }
+        
 
 //        else if counts[curToken] == 2 && counts[.none] == 2 {
 //            score += 2
+//        } else if counts[curToken] == 1 {
+//            score += 7
 //        }
 //
 //        if counts[token] == 0 && counts[.none] == 1 {

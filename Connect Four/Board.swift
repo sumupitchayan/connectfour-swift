@@ -157,8 +157,8 @@ struct Board {
          
          There are four different lines that intersect any given point:
          - Horizontal (the row): xStep = 1, yStep = 0
-         - Vertical (the column): xStep = 0, yStep = 0
-         - Positive Diagonal: xStep = 1, yStep = 0
+         - Vertical (the column): xStep = 0, yStep = 1
+         - Positive Diagonal: xStep = 1, yStep = 1
          - Negative Diagonal: xStep = 1, yStep = -1
          */
         var leftSide = [BoardPosition]()

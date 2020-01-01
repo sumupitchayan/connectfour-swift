@@ -142,8 +142,8 @@ class Connect_FourTests: XCTestCase {
     
     func testGetAvailableCols() {
         XCTAssertTrue(board.getAvailableCols().count == 7)
-        for i in 0..<6 {
-            board.dropToken(col: 0, val: .red)
+        for _ in 0..<6 {
+            _ = board.dropToken(col: 0, val: .red)
         }
         XCTAssertTrue(board.getAvailableCols().count == 6)
         XCTAssertFalse(board.getAvailableCols().contains(0))
