@@ -11,79 +11,100 @@ import Foundation
 class MinimaxAI: AIPlayer {
         
     override func makeDecision(board: Board) -> Int {
-//        let bestCol = pickBestMove(game: game)
-        return pickBestMove(board: board, curToken: token)
+        let col = minimax(board: board, depth: 3, isMaximPlayer: true).0!
+        return col
     }
     
-    func isTerminalNode(game: Game) -> Bool {
-        return game.winners.count > 0
+    func isTerminalNode(board: Board) -> Bool {
+        // Check for Win:
+        let lastMove: BoardPosition = board.moveHistory.last!
+        if board.checkWin(row: lastMove.row, col: lastMove.col, token: lastMove.val) != nil {
+            return true
+        }
+        
+        // Checks for Draw:
+        if board.boardIsFull() {
+            return true
+        }
+        return false
     }
 
-    func minimax(game: Game, depth: Int, isMaximPlayer: Bool) -> Int {
+    func minimax(board: Board, depth: Int, isMaximPlayer: Bool) -> (Int?, Int) {
 
-        if depth == 0 || isTerminalNode(game: game) {
-            if isTerminalNode(game: game) {
-                if game.winners.count == 1 { // Maximizing player wins
-                    if game.winners[0] === self {
-                        return 100000000000
-                    } else { // Opponent wins
-                        return -100000000000
-                    }
-                } else { // It is a draw
-                    return 0
-                }
-            } else { // Depth is zero
-                // return scorePosition()
-            }
-        }
-
-        // Maximizing player
-        if isMaximPlayer {
-            var value = Int.min
-        }
-
-        // Minimizing player
-        else {
-
-        }
-
-        return 0
-    }
-
-    func pickBestMove(board: Board, curToken: TokenColor) -> Int {
-        let randIndex = Int.random(in: 0..<board.getAvailableCols().count)
+        let validCols = board.getAvailableCols()
         
-        var bestCol = board.getAvailableCols()[randIndex]
-        var bestScore = Int.min
-        var curScore = Int.min
-        
-        for col in board.getAvailableCols() {
-            var boardTemp = board
-            _ = boardTemp.dropToken(col: col, val: token)
-
-            curScore = scorePosition(board: boardTemp, curToken: curToken)
-//            print("cur col = \(col)")
-//            print(curScore)
-
-//            print("Cur score: = \(curScore)")
+        if depth == 0 || isTerminalNode(board: board) {
             
-            if curScore >= bestScore {
-                bestScore = curScore
-                bestCol = col
+            if isTerminalNode(board: board) {
+                
+                let lastMove: BoardPosition = board.moveHistory.last!
+                if let win = board.checkWin(row: lastMove.row, col: lastMove.col, token: lastMove.val) {
+                    if win[0].val == self.token { // If AI wins
+                        return (nil, 100000000000)
+                    } else { // If opponent wins
+                        return (nil, -100000000000)
+                    }
+                } else {
+                    return (nil, 0)
+                }
+                
+            } else { // Depth is zero
+                return (nil, scorePosition(board: board))
             }
         }
-        return bestCol
+
+        if isMaximPlayer { // Maximizing player
+            var value = Int.min
+            var column = validCols[Int.random(in: 0..<validCols.count)]
+            for col in validCols {
+                var boardTemp = board
+                _ = boardTemp.dropToken(col: col, val: self.token)
+                
+                let newScore = minimax(board: boardTemp, depth: depth-1, isMaximPlayer: false).1
+                if newScore > value {
+                    value = newScore
+                    column = col
+                }
+            }
+            return (column, value)
+        } else { // Minimizing player
+            var value = Int.max
+            var column = validCols[Int.random(in: 0..<validCols.count)]
+            
+            for col in validCols {
+                var boardTemp = board
+                _ = boardTemp.dropToken(col: col, val: .red)
+                
+                let newScore = minimax(board: boardTemp, depth: depth-1, isMaximPlayer: true).1
+                if newScore < value {
+                    value = newScore
+                    column = col
+                }
+            }
+            return (column, value)
+        }
     }
 
-    func scorePosition(board: Board, curToken: TokenColor) -> Int {
+    func scorePosition(board: Board) -> Int {
+       
         var score = 0
+        
+        // Score Center column
+        let centerCol = board.getLine(row: 0, col: Int(board.cols/2), xStep: 0, yStep: 1)
+        var centerCount = 0
+        for bp in centerCol {
+            if bp.val == self.token {
+                centerCount += 1
+            }
+        }
+        score += centerCount * 3
 
         // Score Horizontal
         for r in 0..<board.rows {
             let rowArr = board.getLine(row: r, col: 0, xStep: 1, yStep: 0)
             for c in 0...board.cols-board.connect {
                 let window = Array(rowArr[c..<c+board.connect])
-                score += evaluateWindow(window: window, curToken: curToken)
+                score += evaluateWindow(window: window, tokenVal: self.token)
             }
         }
         
@@ -92,7 +113,7 @@ class MinimaxAI: AIPlayer {
             let colArr = board.getLine(row: 0, col: c, xStep: 0, yStep: 1)
             for r in 0...board.rows-board.connect {
                 let window = Array(colArr[r..<r+board.connect])
-                score += evaluateWindow(window: window, curToken: curToken)
+                score += evaluateWindow(window: window, tokenVal: self.token)
             }
         }
         
@@ -105,7 +126,7 @@ class MinimaxAI: AIPlayer {
                 
                 while(j < posDiagArr.count) {
                     let window = Array(posDiagArr[i...j])
-                    score += evaluateWindow(window: window, curToken: curToken)
+                    score += evaluateWindow(window: window, tokenVal: self.token)
                     i += 1
                     j += 1
                 }
@@ -121,7 +142,7 @@ class MinimaxAI: AIPlayer {
                 
                 while(j < posDiagArr.count) {
                     let window = Array(posDiagArr[i...j])
-                    score += evaluateWindow(window: window, curToken: curToken)
+                    score += evaluateWindow(window: window, tokenVal: self.token)
                     i += 1
                     j += 1
                 }
@@ -131,7 +152,8 @@ class MinimaxAI: AIPlayer {
         return score
     }
 
-    func evaluateWindow(window: [BoardPosition], curToken: TokenColor) -> Int {
+    // Evaluates BoardPosition windows (of length four) and returns the score
+    func evaluateWindow(window: [BoardPosition], tokenVal: TokenColor) -> Int {
         // Counts how many tokens of each type are in the window
         var counts: [TokenColor : Int] = [:]
         for item in window {
@@ -140,30 +162,42 @@ class MinimaxAI: AIPlayer {
 
         var score: Int = 0
 
-        if counts[curToken] == 4 {
+        if counts[tokenVal] == 4 {
             score += 100
-        } else if counts[curToken] == 3 && counts[.none] == 1 {
-            score += 10
-        } else if counts[curToken] == 2 && counts[.none] == 2 {
+        } else if counts[tokenVal] == 3 && counts[.none] == 1 {
             score += 5
+        } else if counts[tokenVal] == 2 && counts[.none] == 2 {
+            score += 2
         }
         
-        if counts[curToken] == 0 && counts[.none] == 1 {
-            score -= 80
+        if counts[.none] == 1 {
+            if counts[tokenVal] == nil {
+                score -= 4
+            }
         }
         
-
-//        else if counts[curToken] == 2 && counts[.none] == 2 {
-//            score += 2
-//        } else if counts[curToken] == 1 {
-//            score += 7
-//        }
-//
-//        if counts[token] == 0 && counts[.none] == 1 {
-//            score -= 80
-//        }
-
         return score
+    }
+    
+    // Simple decider (no minimax recursion) picks the best move based on available cols
+    func pickBestMove(board: Board, curToken: TokenColor) -> Int {
+        let randIndex = Int.random(in: 0..<board.getAvailableCols().count)
+        
+        var bestCol = board.getAvailableCols()[randIndex]
+        var bestScore = Int.min
+        var curScore = Int.min
+        
+        for col in board.getAvailableCols() {
+            var boardTemp = board
+            _ = boardTemp.dropToken(col: col, val: token)
+
+            curScore = scorePosition(board: boardTemp)
+            if curScore >= bestScore {
+                bestScore = curScore
+                bestCol = col
+            }
+        }
+        return bestCol
     }
     
 }

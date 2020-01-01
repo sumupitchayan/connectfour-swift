@@ -26,11 +26,14 @@ struct Board {
     let connect: Int
     private var grid : [[TokenColor]]
     
+    var moveHistory: [BoardPosition]
+    
     init(height: Int, width: Int, connectWin: Int) {
         rows = height
         cols = width
         connect = connectWin
         grid = Array(repeating: Array(repeating: .none, count: cols), count: rows)
+        moveHistory = [BoardPosition]()
     }
     
     // Subscript accessor allows Board objects to get the grid values (but cannot set them)
@@ -51,6 +54,7 @@ struct Board {
     mutating func dropToken(col: Int, val: TokenColor) -> Int? {
         if let row = firstAvailRow(inCol: col) {
             grid[row][col] = val
+            moveHistory.append(BoardPosition(row: row, col: col, val: val))
             return row
         }
         return nil
