@@ -9,26 +9,84 @@
 import Foundation
 
 class MinimaxAI: AIPlayer {
-        
+    
+    var depth: Int = 3
+    
     override func makeDecision(board: Board) -> Int {
-        let col = minimax(board: board, depth: 3, isMaximPlayer: true).0!
-        return col
+//        let col = minimax(board: board, depth: self.depth, isMaximPlayer: true).0!
+        let prunCol = minimaxPruned(board: board, depth: self.depth, alpha: Int.min, beta: Int.max, isMaximPlayer: true).0!
+        return prunCol
     }
     
-    func isTerminalNode(board: Board) -> Bool {
-        // Check for Win:
-        let lastMove: BoardPosition = board.moveHistory.last!
-        if board.checkWin(row: lastMove.row, col: lastMove.col, token: lastMove.val) != nil {
-            return true
-        }
+    // Alpha-Beta pruning optimizes minimax algorithm
+    func minimaxPruned(board: Board, depth: Int, alpha: Int, beta: Int, isMaximPlayer: Bool) -> (Int?, Int) {
+        let validCols = board.getAvailableCols()
         
-        // Checks for Draw:
-        if board.boardIsFull() {
-            return true
+        if depth == 0 || isTerminalNode(board: board) {
+            
+            if isTerminalNode(board: board) {
+                
+                let lastMove: BoardPosition = board.moveHistory.last!
+                if let win = board.checkWin(row: lastMove.row, col: lastMove.col, token: lastMove.val) {
+                    if win[0].val == self.token { // If AI wins
+                        return (nil, 100000000000)
+                    } else { // If opponent wins
+                        return (nil, -100000000000)
+                    }
+                } else {
+                    return (nil, 0)
+                }
+                
+            } else { // Depth is zero
+                return (validCols[Int.random(in: 0..<validCols.count)], scorePosition(board: board))
+            }
         }
-        return false
+
+        if isMaximPlayer { // Maximizing player
+            var value = Int.min
+            var column = validCols[Int.random(in: 0..<validCols.count)]
+            for col in validCols {
+                var boardTemp = board
+                _ = boardTemp.dropToken(col: col, val: self.token)
+                
+                let newScore = minimaxPruned(board: boardTemp, depth: depth-1, alpha: alpha, beta: beta, isMaximPlayer: false).1
+                if newScore > value {
+                    value = newScore
+                    column = col
+                }
+                
+                // A/B  Pruning:
+                let updatedAlpha = max(alpha, value)
+                if updatedAlpha >= beta {
+                    break
+                }
+            }
+            return (column, value)
+        } else { // Minimizing player
+            var value = Int.max
+            var column = validCols[Int.random(in: 0..<validCols.count)]
+            
+            for col in validCols {
+                var boardTemp = board
+                _ = boardTemp.dropToken(col: col, val: .red)
+                
+                let newScore = minimaxPruned(board: boardTemp, depth: depth-1, alpha: alpha, beta: beta, isMaximPlayer: true).1
+                if newScore < value {
+                    value = newScore
+                    column = col
+                }
+                
+                // A/B Pruning:
+                let updatedBeta = min(beta, value)
+                if alpha >= updatedBeta {
+                    break
+                }
+            }
+            return (column, value)
+        }
     }
 
+    // Returns (Int?, Int) tuple representing (bestCol, bestScore)
     func minimax(board: Board, depth: Int, isMaximPlayer: Bool) -> (Int?, Int) {
 
         let validCols = board.getAvailableCols()
@@ -49,7 +107,7 @@ class MinimaxAI: AIPlayer {
                 }
                 
             } else { // Depth is zero
-                return (nil, scorePosition(board: board))
+                return (validCols[Int.random(in: 0..<validCols.count)], scorePosition(board: board))
             }
         }
 
@@ -84,7 +142,24 @@ class MinimaxAI: AIPlayer {
             return (column, value)
         }
     }
+    
+    // Returns T/F if the board has been won or drawn
+    func isTerminalNode(board: Board) -> Bool {
+        // Check for Win:
+        if let lastMove: BoardPosition = board.moveHistory.last {
+            if board.checkWin(row: lastMove.row, col: lastMove.col, token: lastMove.val) != nil {
+                return true
+            }
+        }
+        
+        // Checks for Draw:
+        if board.boardIsFull() {
+            return true
+        }
+        return false
+    }
 
+    // Returns an Int value score of the board based on diff diagonals/lines
     func scorePosition(board: Board) -> Int {
        
         var score = 0
@@ -152,7 +227,7 @@ class MinimaxAI: AIPlayer {
         return score
     }
 
-    // Evaluates BoardPosition windows (of length four) and returns the score
+    // Returns Int score based of a BoardPosition window (of length four)
     func evaluateWindow(window: [BoardPosition], tokenVal: TokenColor) -> Int {
         // Counts how many tokens of each type are in the window
         var counts: [TokenColor : Int] = [:]

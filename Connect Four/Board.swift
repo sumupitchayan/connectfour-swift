@@ -47,6 +47,7 @@ struct Board {
     // Resets the grid to original state of .none TokenColors
     mutating func reset() {
         grid = Array(repeating: Array(repeating: .none, count: cols), count: rows)
+        moveHistory = [BoardPosition]()
     }
     
     // Drops a token to the "lowest" open row in a given column
@@ -81,6 +82,7 @@ struct Board {
         return true
     }
     
+    // Returns list of Int avail col indices
     func getAvailableCols() -> [Int] {
         var avail = [Int]()
         for col in 0..<cols {

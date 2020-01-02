@@ -19,7 +19,7 @@ protocol GameViewDelegate {
  for player turn switching, checking for wins/draws, and making
  moves.
  */
-class Game: NSCopying {
+class Game {
     
     // Game has 2 Players and keeps track of the current player
     let player1: Player
@@ -34,7 +34,6 @@ class Game: NSCopying {
     
     // Board size/win count variables:
     var board: Board
-    let connect: Int
     let rows: Int
     let cols: Int
     
@@ -42,7 +41,6 @@ class Game: NSCopying {
         
         rows = height
         cols = width
-        connect = connectWin
         board = Board(height: height, width: width, connectWin: connectWin)
         
         player1 = p1
@@ -57,7 +55,7 @@ class Game: NSCopying {
         curPlayer = player1
     }
     
-    //MARK: - Main Game Functions
+    //MARK: - Move Functions
     
     // Checks if a move is valid for a given player
     func isValidMove(col: Int, player: Player) -> Bool {
@@ -115,8 +113,6 @@ class Game: NSCopying {
         }
     }
     
-    //MARK: - Game Win/Draw Logic
-    
     // Updates the winners array instance variable
     func updateGameStatus(row: Int, col: Int, player: Player) {
         
@@ -126,16 +122,6 @@ class Game: NSCopying {
             winners = [player1, player2]
         }
         
-    }
-    
-    //MARK: - NSCopying Protocol
-    
-    func copy(with zone: NSZone? = nil) -> Any {
-        let copy = Game(height: rows, width: cols, connectWin: connect, p1: player1, p2: player2)
-        copy.board = self.board
-        copy.winners = self.winners
-        copy.curPlayer = self.curPlayer
-        return copy
     }
     
 }
